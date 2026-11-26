@@ -6,6 +6,10 @@ Browser-based generator of **IATA BCBP-style test payloads** and PDF417 / QR bar
 
 Once GitHub Pages is enabled, visit: <https://casopstech.github.io/boarding-pass-creator/>.
 
+## User guide
+
+Read the full [step-by-step user guide and field legend](USER_GUIDE.md), including examples, raw mode, multi-leg generation, output controls, and troubleshooting.
+
 ## Hosting
 
 This is a static single-page website: no server, packages, or build process are needed.
