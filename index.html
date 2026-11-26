@@ -1,0 +1,1699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Generate IATA BCBP-style test boarding pass payloads and barcodes for scanner validation." />
+  <title>IATA BCBP Test Boarding Pass Generator</title>
+  <style>
+    :root {
+      --bg: #f7faff;
+      --panel: #ffffff;
+      --panel-soft: #fbfdff;
+      --text: #0b1730;
+      --muted: #607089;
+      --line: #dbe4f0;
+      --line-soft: #edf2f7;
+      --primary: #0f5be8;
+      --primary-dark: #0b49bd;
+      --primary-soft: #eaf2ff;
+      --danger: #d92d20;
+      --danger-soft: #fff4f3;
+      --warn: #b54708;
+      --warn-soft: #fff8e8;
+      --ok: #07864f;
+      --ok-soft: #edfdf4;
+      --shadow: 0 18px 44px rgba(15, 35, 76, 0.08);
+      --radius: 10px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 20% 0%, rgba(15, 91, 232, 0.08), transparent 32%),
+        linear-gradient(180deg, #fbfdff 0%, var(--bg) 420px);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      line-height: 1.45;
+    }
+
+    .page {
+      width: min(1220px, calc(100vw - 32px));
+      margin: 26px auto 30px;
+    }
+
+    .hero {
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(27px, 3.2vw, 36px);
+      letter-spacing: -0.025em;
+      line-height: 1.08;
+    }
+
+    .subtitle {
+      max-width: 780px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 5px 15px;
+      border: 1px solid #c8ddff;
+      background: var(--primary-soft);
+      color: #0b57d0;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .pill.warn {
+      border-color: #f3d99b;
+      background: #fff4d7;
+      color: #a15c00;
+    }
+
+    .notice {
+      display: grid;
+      grid-template-columns: 44px minmax(0, 1fr);
+      gap: 16px;
+      align-items: center;
+      border: 1px solid #f6c76f;
+      background: var(--warn-soft);
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin: 18px 0 24px;
+      color: #5f370e;
+    }
+
+    .notice-icon {
+      display: grid;
+      place-items: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 9px;
+      background: #f7ae2f;
+      color: #fff;
+      font-size: 28px;
+      font-weight: 900;
+    }
+
+    .notice strong {
+      display: block;
+      margin-bottom: 2px;
+      color: var(--text);
+      font-size: 14px;
+    }
+
+    .notice p {
+      margin: 0;
+      font-size: 13px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 0.96fr) minmax(430px, 1.04fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .card,
+    .panel {
+      background: rgba(255, 255, 255, 0.94);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      box-shadow: var(--shadow);
+    }
+
+    .card {
+      padding: 16px;
+    }
+
+    .result-sticky {
+      position: sticky;
+      top: 16px;
+    }
+
+    .output-card {
+      padding: 18px 20px 20px;
+    }
+
+    .step-card,
+    .output-panel {
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: var(--panel);
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .step-head,
+    .output-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      align-items: flex-start;
+      margin-bottom: 16px;
+    }
+
+    .step-title,
+    .output-title {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .step-badge,
+    .output-badge {
+      display: inline-grid;
+      place-items: center;
+      width: 32px;
+      height: 32px;
+      flex: 0 0 auto;
+      border-radius: 999px;
+      background: var(--primary);
+      color: #fff;
+      font-weight: 900;
+      font-size: 15px;
+      box-shadow: 0 8px 16px rgba(15, 91, 232, 0.24);
+    }
+
+    .output-badge {
+      background: #fff;
+      color: #069656;
+      border: 2px solid #16b364;
+      box-shadow: none;
+    }
+
+    h2,
+    h3 {
+      margin: 0;
+      font-size: 16px;
+      letter-spacing: -0.01em;
+    }
+
+    .hint {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .grid-2,
+    .grid-3,
+    .grid-4 {
+      display: grid;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .leg-card .grid-4 { grid-template-columns: 1fr 1.28fr 0.82fr 0.82fr; }
+    .subsection .grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+    .field { min-width: 0; }
+
+    label {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      color: #18233a;
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 7px;
+    }
+
+    .counter {
+      color: var(--muted);
+      font-weight: 650;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 7px;
+      color: var(--text);
+      font: inherit;
+      font-size: 13px;
+      padding: 10px 12px;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: #82aef8;
+      box-shadow: 0 0 0 3px rgba(15, 91, 232, 0.12);
+    }
+
+    textarea {
+      min-height: 88px;
+      resize: vertical;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      white-space: pre-wrap;
+    }
+
+    .switch-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      background: var(--panel-soft);
+      border-radius: 8px;
+      margin-top: 12px;
+    }
+
+    .switch-title {
+      display: block;
+      font-weight: 850;
+      font-size: 13px;
+    }
+
+    .switch-copy {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .switch {
+      position: relative;
+      display: inline-flex;
+      width: 48px;
+      height: 28px;
+      flex: 0 0 auto;
+    }
+
+    .switch input { display: none; }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background: #98a2b3;
+      border-radius: 999px;
+      transition: 0.2s;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      width: 22px;
+      height: 22px;
+      left: 3px;
+      top: 3px;
+      background: #fff;
+      border-radius: 50%;
+      transition: 0.2s;
+      box-shadow: 0 2px 6px rgba(16, 24, 40, 0.24);
+    }
+
+    .switch input:checked + .slider { background: var(--primary); }
+    .switch input:checked + .slider:before { transform: translateX(20px); }
+
+    .toolbar,
+    .payload-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .toolbar {
+      margin-top: 10px;
+    }
+
+    button {
+      appearance: none;
+      border: 1px solid transparent;
+      background: var(--primary);
+      color: white;
+      border-radius: 7px;
+      padding: 10px 14px;
+      font-weight: 850;
+      font-size: 13px;
+      cursor: pointer;
+      transition: transform 0.1s ease, background 0.15s ease, border-color 0.15s ease;
+    }
+
+    button:hover { background: var(--primary-dark); }
+    button:active { transform: translateY(1px); }
+
+    button.secondary {
+      background: #fff;
+      color: var(--primary);
+      border-color: #aac6ff;
+    }
+
+    button.secondary:hover { background: var(--primary-soft); }
+
+    button.small {
+      min-height: 36px;
+      padding: 8px 12px;
+      font-size: 12px;
+    }
+
+    button.danger {
+      background: #fff;
+      color: var(--danger);
+      border-color: #f7c4bf;
+      padding: 8px 11px;
+      font-size: 12px;
+    }
+
+    button.danger:hover { background: var(--danger-soft); }
+
+    button.full {
+      width: 100%;
+      min-height: 44px;
+      font-size: 14px;
+      margin-top: 2px;
+      box-shadow: 0 10px 20px rgba(15, 91, 232, 0.22);
+    }
+
+    .leg-card {
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: var(--panel-soft);
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+
+    .leg-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .leg-title {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-weight: 900;
+    }
+
+    .leg-route {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 5px 11px;
+      border-radius: 999px;
+      background: var(--primary-soft);
+      color: #0b57d0;
+      font-size: 12px;
+      font-weight: 850;
+    }
+
+    .subsection {
+      border: 1px solid var(--line-soft);
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 12px;
+      background: #fff;
+    }
+
+    .subsection-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: baseline;
+      margin-bottom: 10px;
+    }
+
+    .subsection-head strong {
+      font-size: 13px;
+    }
+
+    .inline-select {
+      align-items: center;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      gap: 8px;
+      margin: 0;
+      text-transform: none;
+    }
+
+    .inline-select select {
+      width: auto;
+      min-width: 150px;
+      padding: 6px 28px 6px 10px;
+      font-size: 12px;
+    }
+
+    .status-box {
+      border: 1px solid #f6c76f;
+      background: var(--warn-soft);
+      color: #70400d;
+      border-radius: 9px;
+      padding: 13px 15px;
+      font-size: 13px;
+      margin-bottom: 16px;
+    }
+
+    .status-box.ok {
+      border-color: #abefc6;
+      background: var(--ok-soft);
+      color: #05603a;
+    }
+
+    .status-box.error {
+      border-color: #f7c4bf;
+      background: var(--danger-soft);
+      color: var(--danger);
+    }
+
+    .status-box strong {
+      display: block;
+      margin-bottom: 2px;
+      color: inherit;
+    }
+
+    .status-box ul {
+      margin: 8px 0 0 18px;
+      padding: 0;
+    }
+
+    .output-meta {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .metric {
+      background: var(--panel-soft);
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      min-height: 96px;
+      padding: 14px;
+    }
+
+    .metric span {
+      display: block;
+      color: #344054;
+      font-size: 12px;
+      font-weight: 800;
+      margin-bottom: 7px;
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 22px;
+      line-height: 1.1;
+    }
+
+    .metric small {
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .output-panel {
+      padding: 14px;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .panel-header h3 {
+      font-size: 14px;
+    }
+
+    .panel-header .counter {
+      white-space: nowrap;
+      font-size: 12px;
+    }
+
+    .raw-output {
+      min-height: 122px;
+      max-height: 260px;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
+      line-height: 1.7;
+      background: #081426;
+      color: #f6fbff;
+      border-radius: 8px;
+      padding: 16px;
+      border: 1px solid #172842;
+      margin-bottom: 14px;
+    }
+
+    .barcode-shell {
+      display: grid;
+      place-items: center;
+      min-height: 205px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      overflow: auto;
+    }
+
+    .barcode-shell img {
+      max-width: 100%;
+      height: auto;
+      display: none;
+      background: #fff;
+    }
+
+    .preview-actions {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .empty-state {
+      color: var(--muted);
+      text-align: center;
+      font-size: 13px;
+      padding: 20px;
+    }
+
+    .table-wrap {
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    .segment-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      min-width: 520px;
+    }
+
+    .segment-table th,
+    .segment-table td {
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      padding: 10px 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .segment-table th:last-child,
+    .segment-table td:last-child { border-right: 0; }
+    .segment-table tr:last-child td { border-bottom: 0; }
+
+    .segment-table th {
+      background: var(--panel-soft);
+      color: #1d2939;
+      font-weight: 850;
+    }
+
+    .tip-box {
+      border: 1px solid #d5e6ff;
+      background: #f6faff;
+      color: #25466f;
+      border-radius: 8px;
+      padding: 13px 15px;
+      font-size: 12px;
+      margin-top: 16px;
+    }
+
+    .privacy-note,
+    .page-footer {
+      color: var(--muted);
+      font-size: 12px;
+      text-align: center;
+    }
+
+    .privacy-note {
+      margin: 12px 0 0;
+    }
+
+    .page-footer {
+      margin: 26px 0 0;
+    }
+
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
+    .hide { display: none !important; }
+
+    @media (max-width: 1050px) {
+      .layout { grid-template-columns: 1fr; }
+      .result-sticky { position: static; }
+    }
+
+    @media (max-width: 680px) {
+      .page { width: min(100vw - 20px, 1220px); margin-top: 16px; }
+      .grid-2,
+      .grid-3,
+      .grid-4,
+      .output-meta { grid-template-columns: 1fr; }
+      .leg-card .grid-4 { grid-template-columns: 1fr; }
+      .subsection .grid-4 { grid-template-columns: 1fr; }
+      .notice { grid-template-columns: 1fr; }
+      .step-head,
+      .output-head,
+      .panel-header,
+      .switch-row { align-items: flex-start; }
+      .switch-row { flex-direction: column; }
+      .payload-actions button,
+      .toolbar button { flex: 1 1 160px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <h1>IATA BCBP Test Boarding Pass Generator</h1>
+      <p class="subtitle">
+        Generate BCBP-style M1/M2/M3+ payloads for scanner and application testing. Supports PDF417 and QR rendering, raw payload rendering, and configurable transit legs.
+      </p>
+      <div class="pill-row">
+        <span class="pill" id="currentFormatPill">PDF417</span>
+        <span class="pill" id="currentLegPill">M1</span>
+        <span class="pill warn">Developer testing only</span>
+      </div>
+    </section>
+
+    <section class="notice" aria-label="Developer testing notice">
+      <div class="notice-icon">!</div>
+      <div>
+        <strong>Developer Testing Tool</strong>
+        <p>This tool generates test BCBP payloads for scanner/app validation only. Do not use production passenger data unless approved by an authorized test procedure.</p>
+      </div>
+    </section>
+
+    <div class="layout">
+      <section class="card">
+        <div class="step-card">
+          <div class="step-head">
+            <div class="step-title">
+              <span class="step-badge">1</span>
+              <div>
+                <h2>Format &amp; Options</h2>
+                <p class="hint">Choose barcode type and payload options.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="field">
+              <label for="formatType">Barcode Symbology</label>
+              <select id="formatType">
+                <option value="pdf417">PDF417 - Standard Boarding Pass</option>
+                <option value="qr">QR Code - Mobile / alternate scanner</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="eTicket">Electronic Ticket Indicator <span class="counter">1 char</span></label>
+              <select id="eTicket">
+                <option value="E">E - Electronic ticket</option>
+                <option value=" ">Blank / not supplied</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="switch-row">
+            <div>
+              <span class="switch-title">Use raw payload</span>
+              <span class="switch-copy">Render a known BCBP string exactly, without rebuilding fields.</span>
+            </div>
+            <label class="switch" aria-label="Use raw payload">
+              <input type="checkbox" id="rawMode" />
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div id="rawPanel" class="hide">
+            <div class="field">
+              <label for="rawPayload">Raw BCBP payload</label>
+              <textarea id="rawPayload" spellcheck="false" placeholder="Paste full M1/M2/M3... payload here"></textarea>
+            </div>
+            <div class="toolbar">
+              <button type="button" class="secondary" id="loadSampleM2">Load sample M2</button>
+              <button type="button" class="secondary" id="loadSampleM3">Load sample M3</button>
+              <button type="button" class="secondary" id="clearRaw">Clear raw</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="formPanel">
+          <div class="step-card">
+            <div class="step-head">
+              <div class="step-title">
+                <span class="step-badge">2</span>
+                <div>
+                  <h2>Passenger Details</h2>
+                  <p class="hint">Passenger name field is fixed at 20 characters.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid-2">
+              <div class="field">
+                <label for="passengerName">Passenger Name <span class="counter" id="passengerCount">0 / 20</span></label>
+                <input type="text" id="passengerName" maxlength="40" value="CAS/OPSTECH" placeholder="SURNAME/FIRSTNAME" />
+              </div>
+              <div class="field">
+                <label for="defaultPnr">Default PNR <span class="counter" id="pnrCount">0 / 7</span></label>
+                <input type="text" id="defaultPnr" maxlength="12" value="7OXDIB" />
+              </div>
+            </div>
+          </div>
+
+          <div class="step-card">
+            <div class="step-head">
+              <div class="step-title">
+                <span class="step-badge">3</span>
+                <div>
+                  <h2>Flight Legs</h2>
+                  <p class="hint">Configure transit or multi-leg segments.</p>
+                </div>
+              </div>
+              <button type="button" class="secondary" id="addLegBtn">+ Add leg</button>
+            </div>
+
+            <div class="switch-row">
+              <div>
+                <span class="switch-title">Transit / multi-leg mode</span>
+                <span class="switch-copy">Turn on to generate M2, M3, or more legs.</span>
+              </div>
+              <label class="switch" aria-label="Transit mode">
+                <input type="checkbox" id="transitMode" />
+                <span class="slider"></span>
+              </label>
+            </div>
+
+            <div id="legsContainer"></div>
+          </div>
+
+          <div class="step-card">
+            <div class="step-head">
+              <div class="step-title">
+                <span class="step-badge">4</span>
+                <div>
+                  <h2>Advanced / Optional Fields</h2>
+                  <p class="hint">Version, sizes, sources, and variable data.</p>
+                </div>
+              </div>
+            </div>
+            <div class="subsection">
+              <div class="subsection-head">
+                <strong>Structured Fields</strong>
+                <label class="inline-select" for="activeLegSelect">Editing <select id="activeLegSelect"></select></label>
+              </div>
+              <div class="grid-4">
+                <div class="field">
+                  <label>Beg of Version No <span class="counter">1 char</span></label>
+                  <input data-advanced-field="begOfVersionNo" maxlength="1" />
+                </div>
+                <div class="field">
+                  <label>Version No <span class="counter">1 char</span></label>
+                  <input data-advanced-field="versionNo" maxlength="1" />
+                </div>
+                <div class="field">
+                  <label>Structured Msg Size <span class="counter">2 chars</span></label>
+                  <input data-advanced-field="structuredMessageSize" maxlength="2" />
+                </div>
+                <div class="field">
+                  <label>Passenger Description <span class="counter">1 char</span></label>
+                  <input data-advanced-field="passengerDescription" maxlength="1" />
+                </div>
+              </div>
+              <div class="grid-2">
+                <div class="field">
+                  <label>Source of Check-In <span class="counter">1 char</span></label>
+                  <input data-advanced-field="sourceOfCheckIn" maxlength="1" />
+                </div>
+                <div class="field">
+                  <label>Source of BP Issuance <span class="counter">1 char</span></label>
+                  <input data-advanced-field="sourceOfBpIssuance" maxlength="1" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-card">
+            <div class="step-head">
+              <div class="step-title">
+                <span class="step-badge">5</span>
+                <div>
+                  <h2>Remaining Variable Data</h2>
+                  <p class="hint">0-255 chars total with structured fields; size encoded as 2-digit hex.</p>
+                </div>
+              </div>
+            </div>
+            <div class="subsection">
+              <div class="subsection-head">
+                <strong>Remaining Variable Data</strong>
+                <span class="counter" id="variableDataCount">0 / 255</span>
+              </div>
+              <div class="field">
+                <textarea data-advanced-field="remainingVariableData" spellcheck="false" placeholder="Leave all conditional fields blank for 00."></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button type="button" class="full" id="generateBtn">Generate Barcode / QR</button>
+        <p class="privacy-note">All data stays in your browser. Nothing is stored or sent anywhere except the barcode image request.</p>
+      </section>
+
+      <aside class="card result-sticky output-card">
+        <div class="output-head">
+          <div class="output-title">
+            <span class="output-badge">&#10003;</span>
+            <div>
+              <h2>Output</h2>
+              <p class="hint">Generated image uses the OrcaScan barcode image endpoint.</p>
+            </div>
+          </div>
+        </div>
+
+          <div id="validationBox" class="status-box hide"></div>
+
+          <div class="output-meta">
+            <div class="metric">
+              <span>Format</span>
+              <strong id="metricLegs">-</strong>
+            </div>
+            <div class="metric">
+              <span>Length</span>
+              <strong id="metricLength">-</strong>
+              <small>characters</small>
+            </div>
+            <div class="metric">
+              <span>Symbology</span>
+              <strong id="metricFormat">-</strong>
+            </div>
+          </div>
+
+          <section class="output-panel">
+            <div class="panel-header">
+              <h3>Generated Payload</h3>
+              <span class="counter" id="payloadLengthLabel">0 characters</span>
+            </div>
+            <div class="raw-output" id="rawOutput">Generate a payload to view it here.</div>
+            <div class="payload-actions">
+              <button type="button" id="copyPayloadBtn">Copy Payload</button>
+              <button type="button" class="secondary" id="downloadBarcodeBtn">Download Barcode</button>
+              <button type="button" class="secondary" id="downloadTxtBtn">Download .txt</button>
+            </div>
+          </section>
+
+          <section class="output-panel">
+            <div class="panel-header">
+              <div>
+                <h3 id="barcodePreviewTitle">PDF417 Barcode Preview</h3>
+                <p class="hint">Use this image for scanner validation in UAT.</p>
+              </div>
+            </div>
+            <div class="barcode-shell">
+              <div id="barcodeEmpty" class="empty-state">Barcode / QR preview will appear here.</div>
+              <img id="barcodeImage" alt="Generated boarding pass barcode" />
+            </div>
+            <div class="preview-actions">
+              <button type="button" class="secondary small" id="refreshBarcodeBtn">Refresh</button>
+              <button type="button" class="secondary small" id="openImageBtn">Zoom</button>
+            </div>
+          </section>
+
+          <section class="output-panel">
+            <div class="panel-header">
+              <div>
+                <h3>Payload Breakdown</h3>
+                <p class="hint">Segment view of the generated payload.</p>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table class="segment-table" id="segmentTable">
+                <thead>
+                  <tr>
+                    <th>Segment</th>
+                    <th>Value</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody id="segmentBody">
+                  <tr><td colspan="3" class="mono">No generated payload yet.</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="tip-box">
+              <strong>Tip:</strong> For exact reproduction of a captured boarding pass string, use raw payload mode. Form mode intentionally generates clean test data and may not reproduce airline-specific conditional/security fields.
+            </div>
+          </section>
+      </aside>
+    </div>
+
+    <footer class="page-footer">
+      <p>For developer testing only. Do not use real passenger information.</p>
+      <p>&copy; 2024 IATA - All rights reserved.</p>
+    </footer>
+  </main>
+
+  <template id="legTemplate">
+    <div class="leg-card" data-leg-card>
+      <div class="leg-head">
+        <div class="leg-title">Leg <span data-leg-number></span><span class="leg-route" data-leg-route>Flight leg</span></div>
+        <button type="button" class="danger" data-remove-leg>Remove</button>
+      </div>
+
+      <div class="field">
+        <label>PNR <span class="counter">7 chars</span></label>
+        <input data-field="pnr" maxlength="12" />
+      </div>
+
+      <div class="grid-3">
+        <div class="field">
+          <label>From <span class="counter">3 chars</span></label>
+          <input data-field="from" maxlength="3" />
+        </div>
+        <div class="field">
+          <label>To <span class="counter">3 chars</span></label>
+          <input data-field="to" maxlength="3" />
+        </div>
+        <div class="field">
+          <label>Airline <span class="counter">3 chars</span></label>
+          <input data-field="airline" maxlength="3" />
+        </div>
+      </div>
+
+      <div class="grid-4">
+        <div class="field">
+          <label>Flight No. <span class="counter">5 chars</span></label>
+          <input data-field="flight" maxlength="5" inputmode="numeric" />
+        </div>
+        <div class="field">
+          <label>Travel Date</label>
+          <input type="date" data-field="date" />
+        </div>
+        <div class="field">
+          <label>Class <span class="counter">1 char</span></label>
+          <input data-field="cabin" maxlength="1" />
+        </div>
+        <div class="field">
+          <label>Seat <span class="counter">4 chars</span></label>
+          <input data-field="seat" maxlength="4" />
+        </div>
+      </div>
+
+      <div class="grid-3">
+        <div class="field">
+          <label>Sequence <span class="counter">5 chars</span></label>
+          <input data-field="sequence" maxlength="5" inputmode="numeric" />
+        </div>
+        <div class="field">
+          <label>Status <span class="counter">1 char</span></label>
+          <select data-field="status">
+            <option value="1">1 - checked-in/accepted</option>
+            <option value="0">0 - not checked-in</option>
+            <option value="2">2 - baggage checked</option>
+            <option value="3">3 - checked-in + doc verified</option>
+            <option value=" ">Blank</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Field Size</label>
+          <input data-var-size-preview disabled />
+        </div>
+      </div>
+
+    </div>
+  </template>
+
+  <script>
+    const sampleM2 = "M2BULIE/HANNAH BASSER EVAPAUB SINCDGAF 0181 037Y037H0052 348>5182 O    BAF              2A11725280845260    SK EBG743666299        YVAPAUB CDGCPHSK 1560 037M019F0001 32C2A11725280845260    SK EBG743666299        Y";
+    const sampleM3 = "M3KORNIE/HERLINA      EK5TK5T NTEAMSKL 1460 198M012D0095 348>5180 O    BAF              2A05714882076340                           YK5TK5T AMSSINKL 0835 198M057F0385 32C2A05714882076350                           YK5TK5T SINSYDQF 0002 199Y085J0079 32C2A05714882076350                           N";
+
+    const state = {
+      legs: [],
+      activeLegIndex: 0
+    };
+
+    const optionalFields = [
+      "begOfVersionNo",
+      "versionNo",
+      "structuredMessageSize",
+      "passengerDescription",
+      "sourceOfCheckIn",
+      "sourceOfBpIssuance",
+      "remainingVariableData"
+    ];
+
+    const optionalFieldLengths = {
+      begOfVersionNo: 1,
+      versionNo: 1,
+      structuredMessageSize: 2,
+      passengerDescription: 1,
+      sourceOfCheckIn: 1,
+      sourceOfBpIssuance: 1
+    };
+
+    const $ = (id) => document.getElementById(id);
+
+    function routeText(from, to) {
+      return `${from || "---"} \u2192 ${to || "---"}`;
+    }
+
+    function updateTextCounters() {
+      const passenger = $("passengerName");
+      const pnr = $("defaultPnr");
+      if ($("passengerCount") && passenger) {
+        $("passengerCount").textContent = `${Math.min(passenger.value.length, 20)} / 20`;
+      }
+      if ($("pnrCount") && pnr) {
+        $("pnrCount").textContent = `${Math.min(pnr.value.length, 7)} / 7`;
+      }
+    }
+
+    function setPayloadLengthLabel(length) {
+      if ($("payloadLengthLabel")) {
+        $("payloadLengthLabel").textContent = `${length} ${length === 1 ? "character" : "characters"}`;
+      }
+    }
+
+    function clampActiveLegIndex() {
+      const max = Math.max(state.legs.length - 1, 0);
+      state.activeLegIndex = Math.min(Math.max(state.activeLegIndex || 0, 0), max);
+      return state.activeLegIndex;
+    }
+
+    function normalizeOptionalField(name, value) {
+      let text = String(value ?? "");
+      if (name !== "remainingVariableData") text = text.toUpperCase();
+      const max = optionalFieldLengths[name];
+      if (max) text = text.slice(0, max);
+      return text;
+    }
+
+    function readOptionalPanelValues() {
+      const values = {};
+      optionalFields.forEach((name) => {
+        const input = document.querySelector(`[data-advanced-field="${name}"]`);
+        if (!input) return;
+        const normalized = normalizeOptionalField(name, input.value);
+        if (input.value !== normalized) input.value = normalized;
+        values[name] = normalized;
+      });
+      return values;
+    }
+
+    function syncActiveLegPanelToState() {
+      if (!state.legs.length) return;
+      const index = clampActiveLegIndex();
+      const values = readOptionalPanelValues();
+      state.legs[index] = { ...state.legs[index], ...values };
+    }
+
+    function activeLegWithPanelValues() {
+      const index = clampActiveLegIndex();
+      return { ...(state.legs[index] || createDefaultLeg(index)), ...readOptionalPanelValues() };
+    }
+
+    function variableSizeLabel(leg) {
+      const variableData = composeVariableData(leg);
+      return `0x${hexSize(variableData)} (${variableData.length})`;
+    }
+
+    function updateLegVariablePreviews(activeLeg) {
+      const activeIndex = clampActiveLegIndex();
+      document.querySelectorAll("[data-leg-card]").forEach((card, index) => {
+        const preview = card.querySelector("[data-var-size-preview]");
+        if (!preview) return;
+        const leg = index === activeIndex ? activeLeg : state.legs[index];
+        preview.value = variableSizeLabel(leg || createDefaultLeg(index));
+      });
+    }
+
+    function updateVariablePreview() {
+      const leg = activeLegWithPanelValues();
+      const variableData = composeVariableData(leg);
+      updateLegVariablePreviews(leg);
+      if ($("variableDataCount")) $("variableDataCount").textContent = `${Math.min(variableData.length, 255)} / 255`;
+    }
+
+    function renderActiveLegSelector() {
+      const select = $("activeLegSelect");
+      if (!select) return;
+      const current = clampActiveLegIndex();
+      select.innerHTML = "";
+      state.legs.forEach((leg, index) => {
+        const option = document.createElement("option");
+        option.value = index;
+        option.textContent = `Leg ${index + 1} (${routeText(leg.from, leg.to)})`;
+        select.appendChild(option);
+      });
+      select.value = String(current);
+    }
+
+    function renderOptionalPanel() {
+      if (!state.legs.length) return;
+      const leg = state.legs[clampActiveLegIndex()];
+      optionalFields.forEach((name) => {
+        const input = document.querySelector(`[data-advanced-field="${name}"]`);
+        if (input) input.value = leg[name] ?? "";
+      });
+      renderActiveLegSelector();
+      updateVariablePreview();
+    }
+
+    function todayIso() {
+      const date = new Date();
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, "0");
+      const d = String(date.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    }
+
+    function createDefaultLeg(index = 0) {
+      if (index === 0) {
+        return {
+          pnr: $("defaultPnr") ? $("defaultPnr").value : "7OXDIB",
+          from: "SIN",
+          to: "HEL",
+          airline: "AY",
+          flight: "0132 ",
+          date: todayIso(),
+          cabin: "Y",
+          seat: "064E",
+          sequence: "0025 ",
+          status: "3",
+          begOfVersionNo: ">",
+          versionNo: "5",
+          structuredMessageSize: "18",
+          passengerDescription: "0",
+          sourceOfCheckIn: " ",
+          sourceOfBpIssuance: "O",
+          remainingVariableData: "5351BAY              2A10524896881120 AY                        N8N"
+        };
+      }
+
+      const routes = [
+        { from: "SFO", to: "SIN", airline: "SQ", flight: "31", seat: "21K" },
+        { from: "SIN", to: "CDG", airline: "AF", flight: "181", seat: "37H" },
+        { from: "CDG", to: "CPH", airline: "SK", flight: "1560", seat: "19F" },
+        { from: "CPH", to: "AMS", airline: "KL", flight: "1222", seat: "12A" }
+      ];
+      const route = routes[index % routes.length];
+      return {
+        pnr: $("defaultPnr") ? $("defaultPnr").value : "Z9X2Y1",
+        from: route.from,
+        to: route.to,
+        airline: route.airline,
+        flight: route.flight,
+        date: todayIso(),
+        cabin: "Y",
+        seat: route.seat,
+        sequence: String(index + 1).padStart(5, "0"),
+        status: "1",
+        begOfVersionNo: "",
+        versionNo: "",
+        structuredMessageSize: "",
+        passengerDescription: "",
+        sourceOfCheckIn: "",
+        sourceOfBpIssuance: "",
+        remainingVariableData: ""
+      };
+    }
+
+    function sanitize(value, options = {}) {
+      const raw = String(value ?? "").toUpperCase();
+      const cleaned = options.allowSlash ? raw.replace(/[^A-Z0-9/ ]/g, "") : raw.replace(/[^A-Z0-9 ]/g, "");
+      return cleaned;
+    }
+
+    function fixed(value, length, align = "right", pad = " ", options = {}) {
+      let text = sanitize(value, options);
+      if (text.length > length) text = text.slice(0, length);
+      return align === "left" ? text.padStart(length, pad) : text.padEnd(length, pad);
+    }
+
+    function fixedRaw(value, length, align = "right", pad = " ") {
+      let text = String(value ?? "").toUpperCase();
+      if (text.length > length) text = text.slice(0, length);
+      return align === "left" ? text.padStart(length, pad) : text.padEnd(length, pad);
+    }
+
+    function julianFromIso(isoDate) {
+      if (!isoDate) return "001";
+      const [year, month, day] = isoDate.split("-").map(Number);
+      const date = new Date(year, month - 1, day);
+      const start = new Date(year, 0, 0);
+      const diff = date - start;
+      return String(Math.floor(diff / 86400000)).padStart(3, "0");
+    }
+
+    function hexSize(text) {
+      const length = String(text ?? "").length;
+      return length.toString(16).toUpperCase().padStart(2, "0").slice(-2);
+    }
+
+    function composeVariableData(leg) {
+      const parts = [
+        leg.begOfVersionNo,
+        leg.versionNo,
+        leg.structuredMessageSize,
+        leg.passengerDescription,
+        leg.sourceOfCheckIn,
+        leg.sourceOfBpIssuance,
+        leg.remainingVariableData
+      ];
+      const hasData = parts.some((part) => String(part ?? "").length > 0);
+      if (!hasData) return "";
+      return [
+        fixedRaw(leg.begOfVersionNo, 1),
+        fixedRaw(leg.versionNo, 1),
+        fixedRaw(leg.structuredMessageSize, 2),
+        fixedRaw(leg.passengerDescription, 1),
+        fixedRaw(leg.sourceOfCheckIn, 1),
+        fixedRaw(leg.sourceOfBpIssuance, 1),
+        String(leg.remainingVariableData ?? "")
+      ].join("");
+    }
+
+    function getLegsFromDom() {
+      syncActiveLegPanelToState();
+      const cards = Array.from(document.querySelectorAll("[data-leg-card]"));
+      return cards.map((card, index) => {
+        const get = (name) => card.querySelector(`[data-field="${name}"]`).value;
+        const previous = state.legs[index] || createDefaultLeg(index);
+        return {
+          ...previous,
+          pnr: get("pnr"),
+          from: get("from"),
+          to: get("to"),
+          airline: get("airline"),
+          flight: get("flight"),
+          date: get("date"),
+          cabin: get("cabin"),
+          seat: get("seat"),
+          sequence: get("sequence"),
+          status: get("status")
+        };
+      });
+    }
+
+    function validateFormPayload() {
+      const errors = [];
+      const warnings = [];
+      const name = $("passengerName").value.trim();
+      if (!name) errors.push("Passenger name is required.");
+      if (name.length > 20) warnings.push("Passenger name exceeds 20 characters and will be truncated.");
+
+      const legs = getLegsFromDom();
+      const transit = $("transitMode").checked;
+      if (!transit && legs.length !== 1) errors.push("Non-transit mode must contain exactly 1 flight leg.");
+      if (transit && legs.length < 2) errors.push("Transit mode should contain at least 2 flight legs.");
+      if (legs.length > 9) errors.push("This UI limits BCBP leg count to 9 because the Mx leg count is one character.");
+
+      legs.forEach((leg, index) => {
+        const n = index + 1;
+        if (sanitize(leg.from).length !== 3) errors.push(`Leg ${n}: From airport must be exactly 3 IATA characters.`);
+        if (sanitize(leg.to).length !== 3) errors.push(`Leg ${n}: To airport must be exactly 3 IATA characters.`);
+        if (!leg.date) errors.push(`Leg ${n}: Travel date is required.`);
+        if (!String(leg.flight).trim()) errors.push(`Leg ${n}: Flight number is required.`);
+        if (!String(leg.cabin).trim()) errors.push(`Leg ${n}: Class/cabin is required.`);
+        const variableData = composeVariableData(leg);
+        if (variableData.length > 255) errors.push(`Leg ${n}: Optional conditional/security data must be 255 characters or less.`);
+        if (String(leg.pnr).length > 7) warnings.push(`Leg ${n}: PNR exceeds 7 characters and will be truncated.`);
+        if (String(leg.flight).length > 5) warnings.push(`Leg ${n}: Flight number exceeds 5 characters and will be truncated.`);
+        if (String(leg.seat).length > 4) warnings.push(`Leg ${n}: Seat exceeds 4 characters and will be truncated.`);
+      });
+
+      return { errors, warnings, legs };
+    }
+
+    function buildLegString(leg) {
+      const variableData = composeVariableData(leg);
+      return [
+        fixed(leg.pnr, 7),
+        fixed(leg.from, 3),
+        fixed(leg.to, 3),
+        fixed(leg.airline, 3),
+        fixed(leg.flight, 5, "left", "0"),
+        julianFromIso(leg.date),
+        fixed(leg.cabin, 1),
+        fixed(leg.seat, 4, "left", "0"),
+        fixed(leg.sequence, 5, "left", "0"),
+        fixedRaw(leg.status, 1),
+        hexSize(variableData),
+        variableData
+      ].join("");
+    }
+
+    function buildFormPayload() {
+      const { errors, warnings, legs } = validateFormPayload();
+      if (errors.length) return { payload: "", errors, warnings, legs };
+      const passenger = fixed($("passengerName").value, 20, "right", " ", { allowSlash: true });
+      const eTicket = $("eTicket").value || " ";
+      const payload = `M${legs.length}${passenger}${eTicket}${legs.map(buildLegString).join("")}`;
+      return { payload, errors, warnings, legs };
+    }
+
+    function inferLegCount(payload) {
+      if (!payload || payload[0] !== "M") return "-";
+      const legChar = payload[1];
+      return /[0-9]/.test(legChar) ? `M${legChar}` : "M?";
+    }
+
+    function parseSegments(payload, legs) {
+      const rows = [];
+      if (!payload) return rows;
+      rows.push(["Format", payload.slice(0, 2), "M + number of legs"]);
+      rows.push(["Passenger", payload.slice(2, 22), "Fixed 20-character field"]);
+      rows.push(["E-ticket", payload.slice(22, 23), "1-character indicator"]);
+
+      if (legs && legs.length) {
+        let pos = 23;
+        legs.forEach((leg, index) => {
+          const mandatoryLength = 35;
+          const legString = payload.slice(pos, pos + mandatoryLength);
+          const sizeStart = pos + mandatoryLength;
+          const sizeHex = payload.slice(sizeStart, sizeStart + 2);
+          const varLength = parseInt(sizeHex || "0", 16) || 0;
+          rows.push([`Leg ${index + 1}`, legString, `${routeText(leg.from, leg.to)}; mandatory 35 chars`]);
+          rows.push([`Leg ${index + 1} variable size`, sizeHex, `${varLength} chars; hex length`]);
+          if (varLength) rows.push([`Leg ${index + 1} variable data`, payload.slice(sizeStart + 2, sizeStart + 2 + varLength), "Optional conditional/security data"]);
+          pos = sizeStart + 2 + varLength;
+        });
+        return rows;
+      }
+
+      rows.push(["Raw payload", payload, "Raw mode: not parsed by this tool"]);
+      return rows;
+    }
+
+    function updateSegmentTable(rows) {
+      const body = $("segmentBody");
+      body.innerHTML = "";
+      if (!rows.length) {
+        body.innerHTML = `<tr><td colspan="3" class="mono">No generated payload yet.</td></tr>`;
+        return;
+      }
+      rows.forEach(([segment, value, notes]) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${escapeHtml(segment)}</td><td class="mono">${escapeHtml(value)}</td><td>${escapeHtml(notes)}</td>`;
+        body.appendChild(tr);
+      });
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[char]));
+    }
+
+    function setValidation(errors = [], warnings = []) {
+      const box = $("validationBox");
+      if (!errors.length && !warnings.length) {
+        box.className = "status-box ok";
+        box.innerHTML = "<strong>Payload generated successfully</strong>Validate it against your target scanner/app logic before using it in UAT.";
+        return;
+      }
+      box.className = `status-box ${errors.length ? "error" : ""}`;
+      const title = errors.length ? "Fix required:" : "Generated with warnings:";
+      const items = [...errors, ...warnings].map((msg) => `<li>${escapeHtml(msg)}</li>`).join("");
+      box.innerHTML = `<strong>${title}</strong><ul>${items}</ul>`;
+    }
+
+    function barcodeUrl(format, payload) {
+      return `https://barcode.orcascan.com/?type=${encodeURIComponent(format)}&data=${encodeURIComponent(payload)}`;
+    }
+
+    function generate() {
+      const rawMode = $("rawMode").checked;
+      const format = $("formatType").value;
+      let payload = "";
+      let errors = [];
+      let warnings = [];
+      let legsForTable = [];
+
+      if (rawMode) {
+        payload = $("rawPayload").value.replace(/\r?\n/g, "");
+        if (!payload.trim()) errors.push("Raw payload is empty.");
+        if (payload && payload[0] !== "M") warnings.push("Raw payload does not start with 'M'. Confirm this is intended.");
+      } else {
+        const built = buildFormPayload();
+        payload = built.payload;
+        errors = built.errors;
+        warnings = built.warnings;
+        legsForTable = built.legs;
+      }
+
+      $("validationBox").classList.remove("hide");
+      setValidation(errors, warnings);
+
+      if (errors.length) {
+        $("rawOutput").textContent = "Payload not generated due to validation errors.";
+        $("metricLegs").textContent = "-";
+        $("metricLength").textContent = "-";
+        $("metricFormat").textContent = format.toUpperCase();
+        setPayloadLengthLabel(0);
+        if ($("barcodePreviewTitle")) $("barcodePreviewTitle").textContent = `${format.toUpperCase()} Barcode Preview`;
+        $("barcodeImage").style.display = "none";
+        $("barcodeEmpty").style.display = "block";
+        updateSegmentTable([]);
+        return;
+      }
+
+      const url = barcodeUrl(format, payload);
+      const img = $("barcodeImage");
+      $("barcodeEmpty").textContent = "Loading barcode / QR preview...";
+      $("barcodeEmpty").style.display = "block";
+      img.style.display = "none";
+      img.onload = () => {
+        img.style.display = "block";
+        $("barcodeEmpty").style.display = "none";
+      };
+      img.onerror = () => {
+        img.style.display = "none";
+        $("barcodeEmpty").style.display = "block";
+        $("barcodeEmpty").textContent = "Unable to load barcode image. Check internet access or the barcode endpoint.";
+      };
+      img.src = url;
+
+      $("rawOutput").textContent = payload;
+      $("metricLegs").textContent = inferLegCount(payload);
+      $("metricLength").textContent = payload.length;
+      $("metricFormat").textContent = format.toUpperCase();
+      $("currentFormatPill").textContent = format.toUpperCase();
+      $("currentLegPill").textContent = inferLegCount(payload);
+      setPayloadLengthLabel(payload.length);
+      if ($("barcodePreviewTitle")) $("barcodePreviewTitle").textContent = `${format.toUpperCase()} Barcode Preview`;
+      updateSegmentTable(parseSegments(payload, rawMode ? null : legsForTable));
+    }
+
+    function renderLegs() {
+      const container = $("legsContainer");
+      container.innerHTML = "";
+      state.legs.forEach((leg, index) => {
+        const node = $("legTemplate").content.firstElementChild.cloneNode(true);
+        node.querySelector("[data-leg-number]").textContent = index + 1;
+        node.querySelector("[data-leg-route]").textContent = routeText(leg.from, leg.to);
+
+        Object.entries(leg).forEach(([key, value]) => {
+          const input = node.querySelector(`[data-field="${key}"]`);
+          if (input) input.value = value;
+        });
+
+        node.querySelector("[data-remove-leg]").addEventListener("click", () => removeLeg(index));
+        node.querySelectorAll("input, select, textarea").forEach((input) => {
+          input.addEventListener("input", () => {
+            syncStateFromDom();
+            const card = input.closest("[data-leg-card]");
+            card.querySelector("[data-leg-route]").textContent = routeText(card.querySelector('[data-field="from"]').value, card.querySelector('[data-field="to"]').value);
+            renderActiveLegSelector();
+            updateLegPill();
+          });
+        });
+        container.appendChild(node);
+      });
+      updateRemoveButtons();
+      updateLegPill();
+      renderOptionalPanel();
+    }
+
+    function syncStateFromDom() {
+      state.legs = getLegsFromDom();
+    }
+
+    function addLeg() {
+      syncStateFromDom();
+      if (state.legs.length >= 9) {
+        alert("Maximum 9 legs supported by this test UI.");
+        return;
+      }
+      state.legs.push(createDefaultLeg(state.legs.length));
+      state.activeLegIndex = state.legs.length - 1;
+      if (state.legs.length > 1) $("transitMode").checked = true;
+      renderLegs();
+    }
+
+    function removeLeg(index) {
+      syncStateFromDom();
+      state.legs.splice(index, 1);
+      if (state.legs.length < 1) state.legs.push(createDefaultLeg(0));
+      clampActiveLegIndex();
+      if (state.legs.length === 1) $("transitMode").checked = false;
+      renderLegs();
+    }
+
+    function updateRemoveButtons() {
+      const buttons = Array.from(document.querySelectorAll("[data-remove-leg]"));
+      buttons.forEach((button) => {
+        button.disabled = state.legs.length <= 1;
+        button.style.opacity = state.legs.length <= 1 ? "0.45" : "1";
+        button.style.cursor = state.legs.length <= 1 ? "not-allowed" : "pointer";
+      });
+    }
+
+    function updateLegPill() {
+      const rawMode = $("rawMode").checked;
+      if (rawMode) {
+        $("currentLegPill").textContent = inferLegCount($("rawPayload").value);
+      } else {
+        $("currentLegPill").textContent = `M${state.legs.length}`;
+      }
+    }
+
+    function setTransitMode(enabled) {
+      syncStateFromDom();
+      if (enabled && state.legs.length < 2) {
+        state.legs.push(createDefaultLeg(1));
+      }
+      if (!enabled) {
+        state.legs = [state.legs[0] || createDefaultLeg(0)];
+      }
+      renderLegs();
+    }
+
+    async function copyPayload() {
+      const text = $("rawOutput").textContent;
+      if (!text || text.startsWith("Generate") || text.startsWith("Payload not")) return;
+      try {
+        await navigator.clipboard.writeText(text);
+        setValidation([], ["Payload copied to clipboard."]);
+      } catch (e) {
+        setValidation(["Unable to copy to clipboard in this browser context."], []);
+      }
+    }
+
+    function openImage() {
+      const payload = $("rawOutput").textContent;
+      if (!payload || payload.startsWith("Generate") || payload.startsWith("Payload not")) return;
+      window.open(barcodeUrl($("formatType").value, payload), "_blank", "noopener,noreferrer");
+    }
+
+    function refreshBarcode() {
+      const payload = $("rawOutput").textContent;
+      if (!payload || payload.startsWith("Generate") || payload.startsWith("Payload not")) return;
+      $("barcodeEmpty").textContent = "Loading barcode / QR preview...";
+      $("barcodeEmpty").style.display = "block";
+      $("barcodeImage").style.display = "none";
+      $("barcodeImage").src = `${barcodeUrl($("formatType").value, payload)}&refresh=${Date.now()}`;
+    }
+
+    function downloadBarcodeImage() {
+      const payload = $("rawOutput").textContent;
+      if (!payload || payload.startsWith("Generate") || payload.startsWith("Payload not")) return;
+      const a = document.createElement("a");
+      a.href = barcodeUrl($("formatType").value, payload);
+      a.download = `bcbp-test-${inferLegCount(payload).toLowerCase()}-${$("formatType").value}.png`;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
+
+    function downloadPayloadTxt() {
+      const payload = $("rawOutput").textContent;
+      if (!payload || payload.startsWith("Generate") || payload.startsWith("Payload not")) return;
+      const blob = new Blob([payload], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `bcbp-test-${inferLegCount(payload).toLowerCase()}-${Date.now()}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function init() {
+      state.legs = [createDefaultLeg(0)];
+      renderLegs();
+      $("generateBtn").addEventListener("click", generate);
+      $("addLegBtn").addEventListener("click", addLeg);
+      $("copyPayloadBtn").addEventListener("click", copyPayload);
+      $("openImageBtn").addEventListener("click", openImage);
+      $("downloadBarcodeBtn").addEventListener("click", downloadBarcodeImage);
+      $("refreshBarcodeBtn").addEventListener("click", refreshBarcode);
+      $("downloadTxtBtn").addEventListener("click", downloadPayloadTxt);
+      $("transitMode").addEventListener("change", (event) => setTransitMode(event.target.checked));
+      $("passengerName").addEventListener("input", updateTextCounters);
+      $("activeLegSelect").addEventListener("change", (event) => {
+        syncActiveLegPanelToState();
+        state.activeLegIndex = Number(event.target.value) || 0;
+        renderOptionalPanel();
+      });
+      document.querySelectorAll("[data-advanced-field]").forEach((input) => {
+        input.addEventListener("input", () => {
+          syncActiveLegPanelToState();
+          updateVariablePreview();
+        });
+      });
+      $("rawMode").addEventListener("change", (event) => {
+        $("rawPanel").classList.toggle("hide", !event.target.checked);
+        $("formPanel").classList.toggle("hide", event.target.checked);
+        updateLegPill();
+      });
+      $("formatType").addEventListener("change", () => {
+        $("currentFormatPill").textContent = $("formatType").value.toUpperCase();
+        if ($("barcodePreviewTitle")) $("barcodePreviewTitle").textContent = `${$("formatType").value.toUpperCase()} Barcode Preview`;
+      });
+      $("defaultPnr").addEventListener("input", () => {
+        updateTextCounters();
+        const firstPnr = document.querySelector('[data-leg-card] [data-field="pnr"]');
+        if (firstPnr) firstPnr.value = $("defaultPnr").value;
+        syncStateFromDom();
+      });
+      $("rawPayload").addEventListener("input", updateLegPill);
+      $("loadSampleM2").addEventListener("click", () => { $("rawPayload").value = sampleM2; updateLegPill(); generate(); });
+      $("loadSampleM3").addEventListener("click", () => { $("rawPayload").value = sampleM3; updateLegPill(); generate(); });
+      $("clearRaw").addEventListener("click", () => { $("rawPayload").value = ""; updateLegPill(); });
+      updateTextCounters();
+      generate();
+    }
+
+    init();
+  </script>
+</body>
+</html>
