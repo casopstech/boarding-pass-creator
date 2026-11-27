@@ -8,6 +8,9 @@ Once GitHub Pages is enabled, visit: <https://casopstech.github.io/boarding-pass
 
 ## User guide
 
+
+For phone users, read the [Mobile User Guide](MOBILE_USER_GUIDE.md) for Quick Mode, each field, generating barcodes, More options, Full Editor, and troubleshooting.
+
 Read the full [step-by-step user guide and field legend](USER_GUIDE.md), including examples, raw mode, multi-leg generation, output controls, and troubleshooting.
 
 ## Mobile quick mode
