@@ -2,12 +2,49 @@
 
 **Application:** IATA BCBP Test Boarding Pass Generator  
 **Website:** https://casopstech.github.io/boarding-pass-creator/  
-**Guide revision:** 26 November 2026  
+**Guide revision:** 27 November 2026  
 **Purpose:** Generate synthetic BCBP-style boarding-pass payloads and PDF417 or QR barcode images for scanner and application testing.
 
 > **Testing and privacy notice:** This application is a developer-testing tool, not an airline check-in or boarding-pass issuance system. Do not enter real passenger details unless an authorised testing procedure permits it. To generate barcode images, the website sends the full payload to the third-party OrcaScan barcode endpoint as part of an image URL. A successfully generated barcode does **not** establish that its payload is valid under every IATA or airline-specific rule.
 
-## 1. Quick start: Generate a one-flight (M1) test barcode
+## Mobile quick mode (phones)
+
+On a device whose browser window is **767 px wide or narrower**, the site automatically opens a simplified **Quick boarding pass** form. Desktop and larger-width browsers display the existing full editor. On mobile, select **Full editor · All boarding pass fields** to access every original field; use **← Quick mode** to return.
+
+### Mobile steps
+
+1. Enter the **passenger name** using synthetic test data (for example, `TEST/PASSENGER`).
+2. Enter **Departure airport** and **Destination airport** as 3-letter IATA codes (for example, `SIN` and `HKG`).
+3. Enter the **Airline code** (for example, `SQ`) and the **Flight number** as 1–5 digits (for example, `123`). These are two separate fields.
+4. Choose the **Departure date**.
+5. Optionally expand **More options** to change seat, cabin class, PNR, or PDF417/QR barcode type.
+6. Tap **Generate test barcode**. The page scrolls to the barcode preview. **Save image**, **Zoom**, and **Refresh** controls are provided.
+7. Tap **Show technical details (payload and fields)** to inspect the generated BCBP string, metadata, copy/download buttons, and payload breakdown.
+
+### Mobile field legend
+
+| Field | Meaning | Mobile input rule |
+|---|---|---|
+| Passenger name | Synthetic passenger name, in `SURNAME/FIRSTNAME` style. | Required, up to 20 characters. |
+| Departure airport | Origin airport. | Required, exactly 3 letters, e.g. `SIN`. |
+| Destination airport | Destination airport. | Required, exactly 3 letters, e.g. `HKG`. |
+| Airline code | Carrier designator; separate from flight digits. | Required, 2–3 letters, e.g. `SQ`. |
+| Flight number | Numeric flight identifier. | Required, 1–5 digits, e.g. `123`; the generator pads the BCBP field as needed. |
+| Departure date | Scheduled date of the test flight. | Required date; the existing generator converts it into day-of-year encoding. |
+| Cabin class *(More options)* | Single-character class code. | Defaults to the existing test value `Y`; required by the underlying generator. |
+| Seat *(More options)* | Seat identifier. | Up to 4 characters. |
+| PNR *(More options)* | Test booking reference. | Up to 7 characters. |
+| Barcode type *(More options)* | Preview format. | PDF417 by default, or QR. |
+
+**Important:** The mobile UI hides advanced testing fields; it does not silently delete them. The original sample may include optional conditional/variable data. To create a clean payload without these fields, use **Full editor** to clear those values. Quick mode accepts **one flight leg** only; extra transit legs must be removed in Full editor before switching back.
+
+### Output and privacy
+
+The preview is intended for scanner-validation testing, not for actual travel or airline check-in. The image-rendering request transmits the complete BCBP payload to the external barcode service; use synthetic data only. A generated image does not prove the barcode is supported by the target scanner.
+
+---
+
+## 1. Quick start: Generate a one-flight (M1) test barcode (desktop/full editor)
 
 1. Open the website. The application initially displays a **single flight leg (M1)** with illustrative sample data.
 2. Under **1 - Format & Options**, select **PDF417 - Standard Boarding Pass** or **QR Code - Mobile / alternate scanner**. Leave **Use raw payload** turned **off** for normal form entry. Choose **E - Electronic ticket** or **Blank / not supplied** as required by the test case.
