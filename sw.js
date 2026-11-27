@@ -1,5 +1,5 @@
 /* Boarding Pass Creator - offline-first app shell */
-const CACHE_NAME = "cas-bcbp-test-v1";
+const CACHE_NAME = "cas-bcbp-test-v2";
 const CORE = [
   "./", "./index.html", "./mobile.css", "./mobile.js",
   "./manifest.webmanifest", "./icons/icon-192.png", "./icons/icon-512.png",
