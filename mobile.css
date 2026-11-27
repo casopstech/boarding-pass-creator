@@ -1,0 +1,83 @@
+/* Responsive quick-entry UI; the original desktop editor remains unchanged. */
+.mobile-only { display: none !important; }
+
+@media (max-width: 767px) {
+  .page { width: min(100% - 24px, 620px); margin: 14px auto 28px; }
+  .hero { margin-bottom: 10px; }
+  .hero h1 { font-size: 23px; line-height: 1.16; margin-bottom: 4px; }
+  .hero .subtitle { display: none; }
+  .pill-row { gap: 6px; margin-top: 10px; }
+  .pill { font-size: 10px; padding: 4px 9px; min-height: 26px; }
+  .notice { display: block; padding: 10px 12px; margin: 12px 0 14px; }
+  .notice-icon { display: none; }
+  .notice strong { font-size: 12px; }
+  .notice p { font-size: 11px; line-height: 1.4; }
+  .layout { display: block; }
+  .card { padding: 12px; border-radius: 13px; }
+  .result-sticky { position: static; margin-top: 14px; }
+  .mobile-only { display: block !important; }
+  #desktopEditor, #generateBtn { display: none !important; }
+  #builderCard.mobile-full-mode #desktopEditor { display: block !important; }
+  #builderCard.mobile-full-mode #generateBtn { display: block !important; }
+  #builderCard.mobile-full-mode #mobileQuickPanel { display: none !important; }
+  #builderCard.mobile-full-mode #mobileBackBar { display: flex !important; }
+
+  #mobileQuickPanel { padding: 2px 1px 4px; }
+  .mobile-quick-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin: 2px 0 17px; }
+  .mobile-quick-heading h2 { font-size: 19px; line-height: 1.2; letter-spacing: -0.02em; }
+  .mobile-quick-heading p { margin: 5px 0 0; font-size: 12px; color: var(--muted); }
+  .mobile-quick-tag { display: inline-flex; flex-shrink: 0; padding: 5px 8px; color: #1654bd; background: #eaf2ff; border-radius: 20px; font-size: 10px; font-weight: 800; }
+  .mobile-quick-grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 12px; }
+  .mobile-quick-grid .wide { grid-column: 1 / -1; }
+  .mobile-quick-grid .field label, .mobile-extra-grid .field label { display: block; font-size: 12px; margin-bottom: 7px; }
+  .mobile-quick-grid input, .mobile-quick-grid select, .mobile-extra-grid input, .mobile-extra-grid select { min-width: 0; min-height: 48px; padding: 11px 12px; font-size: 16px; border-radius: 9px; }
+  .mobile-field-help { font-size: 11px; color: var(--muted); margin-top: 5px; }
+  .mobile-route-label { margin: 17px 0 8px; font-size: 11px; color: #54617a; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; }
+  .mobile-extras { border: 1px solid var(--line); border-radius: 10px; margin-top: 18px; background: #fbfdff; }
+  .mobile-extras summary { display: flex; align-items: center; justify-content: space-between; gap: 10px; cursor: pointer; padding: 14px 13px; font-size: 13px; color: #1654bd; font-weight: 850; list-style: none; }
+  .mobile-extras summary::-webkit-details-marker { display: none; }
+  .mobile-extras summary::after { content: '+'; font-size: 20px; font-weight: 500; }
+  .mobile-extras[open] summary::after { content: '−'; }
+  .mobile-extra-grid { padding: 1px 13px 14px; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+  .mobile-extra-grid .wide { grid-column: 1 / -1; }
+  .mobile-submit { width: 100%; min-height: 54px; font-size: 16px; border-radius: 10px; margin: 16px 0 10px; box-shadow: 0 9px 22px rgba(15,91,232,.2); }
+  .mobile-full-link { width: 100%; min-height: 44px; background: white; color: #1654bd; border: 1px solid #bed2f5; box-shadow: none; }
+  .mobile-full-link:hover { color: #0b49bd; background: #f3f7ff; }
+  .mobile-quick-footnote { font-size: 11px; color: #6b778c; text-align: center; margin: 11px 0 0; }
+  #mobileQuickError { display: none; margin-top: 10px; padding: 10px; border-radius: 8px; background: #fff4f3; border: 1px solid #f7c4bf; color: #a52520; font-size: 12px; }
+  #mobileQuickError.is-visible { display: block; }
+  #mobileBackBar { display: none !important; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+  #mobileBackBar button { color: #1654bd; border: 1px solid #bed2f5; background: white; padding: 9px 12px; }
+  #mobileBackBar strong { font-size: 14px; }
+  #builderCard.mobile-full-mode .step-card { margin-bottom: 12px; padding: 12px; }
+  #builderCard.mobile-full-mode .grid-2, #builderCard.mobile-full-mode .grid-3, #builderCard.mobile-full-mode .grid-4, #builderCard.mobile-full-mode .leg-card .grid-4 { grid-template-columns: minmax(0,1fr); }
+  #builderCard.mobile-full-mode input, #builderCard.mobile-full-mode select, #builderCard.mobile-full-mode textarea { font-size: 16px; }
+  #builderCard.mobile-full-mode #generateBtn { margin-top: 12px; min-height: 52px; font-size: 15px; }
+
+  /* Prioritize the scan-ready image over developer-only payload internals. */
+  #outputCard { display: flex; flex-direction: column; padding: 14px 12px; }
+  #outputCard .output-head { order: 0; margin-bottom: 10px; }
+  #outputCard #validationBox { order: 1; }
+  #outputCard #barcodeOutputPanel { order: 2; }
+  #mobileTechToggle { order: 3; width: 100%; min-height: 42px; background: white; border: 1px solid #c4d8f9; color: #1654bd; border-radius: 9px; font-size: 12px; margin: 0 0 10px; }
+  #outputCard .output-meta { order: 4; display: none; }
+  #outputCard #payloadOutputPanel { order: 5; display: none; }
+  #outputCard #breakdownOutputPanel { order: 6; display: none; }
+  #outputCard.mobile-show-details .output-meta { display: grid; }
+  #outputCard.mobile-show-details #payloadOutputPanel,
+  #outputCard.mobile-show-details #breakdownOutputPanel { display: block; }
+  #outputCard .output-panel { margin-bottom: 12px; padding: 12px; }
+  #outputCard .barcode-shell { min-height: 220px; padding: 12px; }
+  #outputCard .barcode-shell img { width: auto; max-width: 100%; }
+  #outputCard .preview-actions { flex-wrap: wrap; gap: 8px; }
+  #outputCard .preview-actions button { flex: 1 1 90px; min-height: 41px; }
+  .mobile-save-btn { background: #0f5be8 !important; color: white !important; border-color: #0f5be8 !important; }
+  .mobile-save-btn:hover { background: #0b49bd !important; }
+  #outputCard .output-meta { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 6px; }
+  #outputCard .metric { min-height: 80px; padding: 10px; }
+  #outputCard .metric span { font-size: 10px; }
+  #outputCard .metric strong { font-size: 16px; }
+  #outputCard .raw-output { min-height: 80px; padding: 12px; }
+  #outputCard .payload-actions button { flex: 1 1 110px; }
+  .page-footer { font-size: 11px; }
+}
