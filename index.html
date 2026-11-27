@@ -3,9 +3,21 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Generate IATA BCBP-style test boarding pass payloads and barcodes for scanner validation." />
+  <meta name="description" content="Offline-ready IATA BCBP test boarding pass generator for scanner validation." />
+  <meta name="theme-color" content="#0f5be8" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="BCBP Test" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
   <title>IATA BCBP Test Boarding Pass Generator</title>
   <style>
+    .barcode-zoom-dialog { border: 0; border-radius: 14px; padding: 10px; max-width: min(96vw, 1100px); width: 96vw; background: white; box-shadow: 0 22px 60px rgba(4,23,57,.25); }
+    .barcode-zoom-dialog::backdrop { background: rgba(6, 18, 43, .74); }
+    .barcode-zoom-inner { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+    .barcode-zoom-inner img { display: block; max-width: 100%; height: auto; object-fit: contain; margin: auto; }
+    .barcode-zoom-close { padding: 8px 16px; font-size: 14px; cursor: pointer; }
+
     :root {
       --bg: #f7faff;
       --panel: #ffffff;
@@ -700,6 +712,7 @@
         <span class="pill" id="currentFormatPill">PDF417</span>
         <span class="pill" id="currentLegPill">M1</span>
         <span class="pill warn">Developer testing only</span>
+        <span class="pill" id="offlineReadyBadge" aria-live="polite">Preparing offline app…</span>
       </div>
     </section>
 
@@ -884,7 +897,7 @@
         </div>
 
         <button type="button" class="full" id="generateBtn">Generate Barcode / QR</button>
-        <p class="privacy-note">All data stays in your browser. Nothing is stored or sent anywhere except the barcode image request.</p>
+        <p class="privacy-note">Barcode generation runs locally on this device. No boarding pass payload is sent to an external barcode service. Use synthetic test details only.</p>
       </section>
 
       <aside class="card result-sticky output-card">
@@ -893,7 +906,7 @@
             <span class="output-badge">&#10003;</span>
             <div>
               <h2>Output</h2>
-              <p class="hint">Generated image uses the OrcaScan barcode image endpoint.</p>
+              <p class="hint">Barcodes are generated locally; available offline after the app is installed and cached.</p>
             </div>
           </div>
         </div>
@@ -933,7 +946,7 @@
             <div class="panel-header">
               <div>
                 <h3 id="barcodePreviewTitle">PDF417 Barcode Preview</h3>
-                <p class="hint">Use this image for scanner validation in UAT.</p>
+                <p class="hint">Generated on-device. Use synthetic data and verify with your intended scanner in UAT.</p>
               </div>
             </div>
             <div class="barcode-shell">
@@ -1051,6 +1064,9 @@
     </div>
   </template>
 
+  <script src="vendor/bcmath-min.js"></script>
+  <script src="vendor/pdf417-min.js"></script>
+  <script src="vendor/qrcode.min.js"></script>
   <script>
     const sampleM2 = "M2BULIE/HANNAH BASSER EVAPAUB SINCDGAF 0181 037Y037H0052 348>5182 O    BAF              2A11725280845260    SK EBG743666299        YVAPAUB CDGCPHSK 1560 037M019F0001 32C2A11725280845260    SK EBG743666299        Y";
     const sampleM3 = "M3KORNIE/HERLINA      EK5TK5T NTEAMSKL 1460 198M012D0095 348>5180 O    BAF              2A05714882076340                           YK5TK5T AMSSINKL 0835 198M057F0385 32C2A05714882076350                           YK5TK5T SINSYDQF 0002 199Y085J0079 32C2A05714882076350                           N";
@@ -1444,8 +1460,76 @@
       box.innerHTML = `<strong>${title}</strong><ul>${items}</ul>`;
     }
 
-    function barcodeUrl(format, payload) {
-      return `https://barcode.orcascan.com/?type=${encodeURIComponent(format)}&data=${encodeURIComponent(payload)}`;
+    // Render both barcode symbologies on the device, without a remote image API.
+    // PDF417 engine: bkuzmic/pdf417-js (LGPLv3). QR: davidshimjs/qrcodejs (MIT).
+    function createBarcodeDataUrl(format, payload) {
+      if (format === "pdf417") {
+        if (typeof PDF417 === "undefined") throw new Error("PDF417 encoder is not available. Reopen the app online once to complete offline installation.");
+        PDF417.init(payload);
+        const matrix = PDF417.getBarcodeArray();
+        if (!matrix || !matrix.num_rows || !matrix.num_cols || !matrix.bcode) throw new Error("The PDF417 encoder returned no symbol.");
+        const moduleWidth = 3;
+        const moduleHeight = 3;
+        const canvas = document.createElement("canvas");
+        canvas.width = matrix.num_cols * moduleWidth;
+        canvas.height = matrix.num_rows * moduleHeight;
+        if (canvas.width > 10000 || canvas.height > 10000) throw new Error("Barcode is too large for this device.");
+        const ctx = canvas.getContext("2d");
+        if (!ctx) throw new Error("Canvas rendering is not supported on this browser.");
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#000";
+        for (let y = 0; y < matrix.num_rows; y++) {
+          for (let x = 0; x < matrix.num_cols; x++) {
+            if (matrix.bcode[y][x] == 1) ctx.fillRect(x * moduleWidth, y * moduleHeight, moduleWidth, moduleHeight);
+          }
+        }
+        return canvas.toDataURL("image/png");
+      }
+      if (format === "qr") {
+        if (typeof QRCode === "undefined") throw new Error("QR encoder is not available. Reopen the app online once to complete offline installation.");
+        const container = document.createElement("div");
+        new QRCode(container, {
+          text: payload,
+          width: 512,
+          height: 512,
+          correctLevel: QRCode.CorrectLevel.M,
+          colorDark: "#000000",
+          colorLight: "#ffffff"
+        });
+        const canvas = container.querySelector("canvas");
+        if (!canvas) throw new Error("QR encoder could not create a canvas.");
+        return canvas.toDataURL("image/png");
+      }
+      throw new Error("Unsupported barcode type.");
+    }
+
+    function renderBarcode(format, payload) {
+      const img = $("barcodeImage");
+      const placeholder = $("barcodeEmpty");
+      img.style.display = "none";
+      placeholder.style.display = "block";
+      placeholder.textContent = "Generating barcode on this device…";
+      try {
+        const dataUrl = createBarcodeDataUrl(format, payload);
+        img.onload = () => {
+          img.style.display = "block";
+          placeholder.style.display = "none";
+        };
+        img.onerror = () => {
+          img.style.display = "none";
+          placeholder.style.display = "block";
+          placeholder.textContent = "The local barcode image could not be displayed.";
+        };
+        img.src = dataUrl;
+        return true;
+      } catch (error) {
+        img.removeAttribute("src");
+        placeholder.style.display = "block";
+        placeholder.textContent = `Barcode generation failed: ${error.message || error}`;
+        setValidation([`Barcode rendering failed: ${error.message || error}`], []);
+        return false;
+      }
     }
 
     function generate() {
@@ -1484,21 +1568,7 @@
         return;
       }
 
-      const url = barcodeUrl(format, payload);
-      const img = $("barcodeImage");
-      $("barcodeEmpty").textContent = "Loading barcode / QR preview...";
-      $("barcodeEmpty").style.display = "block";
-      img.style.display = "none";
-      img.onload = () => {
-        img.style.display = "block";
-        $("barcodeEmpty").style.display = "none";
-      };
-      img.onerror = () => {
-        img.style.display = "none";
-        $("barcodeEmpty").style.display = "block";
-        $("barcodeEmpty").textContent = "Unable to load barcode image. Check internet access or the barcode endpoint.";
-      };
-      img.src = url;
+      renderBarcode(format, payload);
 
       $("rawOutput").textContent = payload;
       $("metricLegs").textContent = inferLegCount(payload);
@@ -1607,28 +1677,37 @@
     }
 
     function openImage() {
-      const payload = $("rawOutput").textContent;
-      if (!payload || payload.startsWith("Generate") || payload.startsWith("Payload not")) return;
-      window.open(barcodeUrl($("formatType").value, payload), "_blank", "noopener,noreferrer");
+      const img = $("barcodeImage");
+      if (!img.src || img.style.display === "none") return;
+      // A same-page zoom also works offline and avoids data: URL popup restrictions.
+      let dialog = document.getElementById("barcodeZoomDialog");
+      if (!dialog) {
+        dialog = document.createElement("dialog");
+        dialog.id = "barcodeZoomDialog";
+        dialog.className = "barcode-zoom-dialog";
+        dialog.innerHTML = '<div class="barcode-zoom-inner"><button type="button" class="barcode-zoom-close" aria-label="Close zoom">Close ×</button><img alt="Full-size generated test barcode" /></div>';
+        document.body.appendChild(dialog);
+        dialog.querySelector("button").addEventListener("click", () => dialog.close());
+        dialog.addEventListener("click", (event) => { if (event.target === dialog) dialog.close(); });
+      }
+      dialog.querySelector("img").src = img.src;
+      dialog.showModal();
     }
 
     function refreshBarcode() {
       const payload = $("rawOutput").textContent;
       if (!payload || payload.startsWith("Generate") || payload.startsWith("Payload not")) return;
-      $("barcodeEmpty").textContent = "Loading barcode / QR preview...";
-      $("barcodeEmpty").style.display = "block";
-      $("barcodeImage").style.display = "none";
-      $("barcodeImage").src = `${barcodeUrl($("formatType").value, payload)}&refresh=${Date.now()}`;
+      renderBarcode($("formatType").value, payload);
     }
 
     function downloadBarcodeImage() {
       const payload = $("rawOutput").textContent;
       if (!payload || payload.startsWith("Generate") || payload.startsWith("Payload not")) return;
+      const img = $("barcodeImage");
+      if (!img.src || !img.src.startsWith("data:image/png")) return;
       const a = document.createElement("a");
-      a.href = barcodeUrl($("formatType").value, payload);
+      a.href = img.src;
       a.download = `bcbp-test-${inferLegCount(payload).toLowerCase()}-${$("formatType").value}.png`;
-      a.target = "_blank";
-      a.rel = "noopener noreferrer";
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -1697,5 +1776,36 @@
     init();
   </script>
   <script src="mobile.js"></script>
+  <script>
+    // Cache the entire app shell during the initial online visit.
+    (function () {
+      const status = document.getElementById("offlineReadyBadge");
+      function updateStatus() {
+        if (!status) return;
+        if (status.dataset.ready === "yes") {
+          status.textContent = navigator.onLine ? "Offline ready" : "Offline mode";
+          status.style.background = "#edfdf4";
+          status.style.color = "#057348";
+        } else if (navigator.onLine === false) {
+          status.textContent = "Offline files not confirmed";
+        }
+      }
+      window.addEventListener("online", updateStatus);
+      window.addEventListener("offline", updateStatus);
+      if (!("serviceWorker" in navigator) || !window.isSecureContext) {
+        status.textContent = "Install from HTTPS for offline use";
+        return;
+      }
+      navigator.serviceWorker.register("./sw.js", {scope:"./"}).then(function (registration) {
+        return navigator.serviceWorker.ready;
+      }).then(async function () {
+        // The SW activates only after its essential assets have been precached.
+        status.dataset.ready = "yes";
+        updateStatus();
+      }).catch(function () {
+        status.textContent = "Offline setup failed — reload online";
+      });
+    }());
+  </script>
 </body>
 </html>
