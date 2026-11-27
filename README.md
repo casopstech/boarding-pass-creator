@@ -1,49 +1,50 @@
-# Boarding Pass Creator
+# Boarding Pass Creator (BCBP Test)
 
-Browser-based generator of **IATA BCBP-style test payloads** and PDF417 / QR barcode previews.
+A browser-based IATA BCBP-style **test payload and barcode generator** for PDF417 and QR scanner/application UAT. This is not a camera scanner or a system that issues real airline boarding passes.
 
-## Website
+## Open the app
 
-Once GitHub Pages is enabled, visit: <https://casopstech.github.io/boarding-pass-creator/>.
+**Website:** https://casopstech.github.io/boarding-pass-creator/
 
-## User guide
+The website uses a simplified Quick Mode on phone-sized screens (767 px wide or narrower), and the Full Editor on desktop. On mobile, tap **Full editor** for advanced fields and multi-leg test payloads.
 
+The synthetic default passenger name is **`TAN/WEIMING`**.
 
-For phone users, read the [Mobile User Guide](MOBILE_USER_GUIDE.md) for Quick Mode, each field, generating barcodes, More options, Full Editor, and troubleshooting.
+## User guides
 
-Read the full [step-by-step user guide and field legend](USER_GUIDE.md), including examples, raw mode, multi-leg generation, output controls, and troubleshooting.
+- **[Mobile Quick Start - green and red validation screens](MOBILE_QUICK_START.md)** (simple instructions, with screenshot PDF supplied separately)
+- [Detailed Mobile User Guide](MOBILE_USER_GUIDE.md) - every Quick Mode field and output control
+- [Full User Guide and Field Legend](USER_GUIDE.md) - advanced fields, raw payloads and multi-leg testing
+- [Home Screen Installation / Offline Guide](OFFLINE_INSTALL_GUIDE.md) - iPhone Safari and Android Chrome
 
-## Mobile quick mode
+## Green versus red validation
 
-The site automatically uses a simplified interface on viewports **767 px wide or narrower** (phones). Desktop and wider windows retain the complete editor.
+- **Green - Payload generated successfully:** valid generator input and a generated test payload.
+- **Red - Fix required / form error:** missing or invalid data, or a barcode-generation failure.
 
-On a phone:
-1. Enter a **test passenger name**, **departure airport**, **destination airport**, **airline code**, **flight number**, and **departure date**.
-2. Tap **Generate test barcode** to view a PDF417 preview.
-3. Expand **More options** to change the cabin class, seat, PNR, or barcode type (PDF417/QR).
-4. Tap **Full editor** for raw BCBP mode, multi-leg itineraries, advanced conditional fields, or other testing parameters.
-5. Under the result, tap **Show technical details** for raw payload, metadata, copy/download buttons, and field breakdown.
+Neither colour tells you whether an airport scanner or airline system accepted the boarding pass. Use a separate scanner/UAT validation process for that.
 
-Quick mode is designed for a **single flight**; multi-leg settings can be edited only in Full editor and are never silently discarded when switching back. Both modes use the same payload-generation and validation functions.
+## Offline support
+
+The site is an installable Progressive Web App (PWA). It generates PDF417 and QR barcodes **locally** with bundled JavaScript. It does **not** send the generated barcode payload to OrcaScan or another barcode-rendering service.
+
+1. Open the website online and wait for **Offline ready**.
+2. On iPhone Safari, tap Share > Add to Home Screen; on Android Chrome, use Install app / Add to Home screen.
+3. Open the installed icon while online and confirm Offline ready.
+4. Test in Airplane Mode.
+
+Cached content can be evicted or refreshed by the browser. After updates, open the app online so the new cache version can install.
+
+For a separate, self-contained backup file, see [offline-standalone.html](offline-standalone.html). A downloaded HTML file is not a substitute for the installed PWA on all phones.
 
 ## Hosting
 
-This is a static single-page website: no server, packages, or build process are needed.
+This repository uses **GitHub Pages**, deployed from **`main`** at **`/(root)`**. The app is plain HTML/CSS/JavaScript and needs no build process or backend.
 
-To enable GitHub Pages: open **Settings → Pages → Build and deployment**, choose **Deploy from a branch**, set branch **main**, folder **/(root)**, then save.
+## Safety, privacy, and attribution
 
-## Local use
+Use **synthetic test data only**. Barcode generation does not verify flights, check-in, airline authorizations, IATA compliance, or real-world boarding eligibility.
 
-Open `index.html` in your browser, or serve the directory with:
+Third-party local encoder libraries and their license notices are in [vendor/THIRD_PARTY_NOTICES.md](vendor/THIRD_PARTY_NOTICES.md).
 
-```sh
-python3 -m http.server 8000
-```
-
-## Testing and data notice
-
-For **developer/scanner testing only**. Do not enter real passenger data. Barcode previews are requested from the external OrcaScan barcode image service using the generated payload encoded as a URL parameter; therefore, generated payload data is disclosed to that service.
-
-## Source attribution and rights
-
-Published from the user-supplied project archive. Its original README referenced <https://xiaaohau.github.io/boarding-pass-creator/>. Verify you have permission to redistribute third-party code; no additional license rights are granted by this repository.
+Published from the supplied project archive. Verify authorization to redistribute all parts of the original code; publishing does not confer new intellectual property rights.
