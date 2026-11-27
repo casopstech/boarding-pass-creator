@@ -6,7 +6,7 @@
 **Guide date:** 27 November 2026  
 **Purpose:** Create synthetic, single-flight BCBP-style test payloads and display their PDF417 or QR barcode previews.
 
-> **Use for development and scanner validation only.** This is a **barcode generator**, not a phone-camera boarding-pass scanner or a live check-in system. A displayed barcode is not proof that a payload meets IATA or airline-specific requirements. The preview image is requested from an external OrcaScan service using the generated payload, so use **test data only**. Do not enter genuine passenger or booking information without an approved testing procedure.
+> **Use for development and scanner validation only.** This is a **barcode generator**, not a phone-camera boarding-pass scanner or a live check-in system. A displayed barcode is not proof that a payload meets IATA or airline-specific requirements. The barcode preview is generated on-device by bundled JavaScript, including when installed offline. Use **test data only**. Do not enter genuine passenger or booking information without an approved testing procedure.
 
 ## 1. Quick start — generate a single-flight test barcode
 
@@ -68,7 +68,7 @@ Quick Mode is intentionally limited to **one flight leg (M1)**. The **Full edito
 |---|---|---|
 | **Generate test barcode** | Validates Quick Mode essentials and regenerates the test payload and barcode request. | After entering or changing test flight data. |
 | **Output** | Displays generation/validation status and barcode preview. | Confirm whether a payload was generated, then test it on your target scanner. |
-| **PDF417 Barcode Preview / QR Barcode Preview** | Displays the selected barcode image fetched from an external service. | Use for scanner testing. Image delivery requires network access to the barcode service. |
+| **PDF417 Barcode Preview / QR Barcode Preview** | Displays the selected barcode image generated locally. | Use for scanner testing; after offline installation, network access is not required for image generation. |
 | **Refresh** | Requests the current barcode image again. | Try if image loading is stalled or failed. |
 | **Zoom** | Opens the barcode image in a separate browser tab/window. | For larger display or scanner alignment; browser pop-up behaviour varies. |
 | **Save image** | Attempts to save/download the barcode image. | For test evidence; mobile browsers may instead open the image, requiring the browser's Save Image option. |
@@ -98,7 +98,7 @@ Quick Mode is intentionally limited to **one flight leg (M1)**. The **Full edito
 |---|---|---|
 | **Generate button shows an error** | Required Quick Mode field is blank or malformed. | Check name, exactly 3-letter airport codes, 2–3-letter airline code, 1–5-digit flight number and travel date. |
 | **Flight number loses the airline letters** | The field accepts digits only. | Put `SQ` in Airline code and `123` in Flight number. |
-| **No barcode image appears, but generation is successful** | The external OrcaScan image endpoint may be inaccessible, blocked, slow or unavailable. | Check internet access; tap Refresh. Use technical details to see whether the raw payload exists. |
+| **No barcode image appears, but generation is successful** | The local barcode encoder may have failed to load or the payload may be unsupported. | Open the app online once to complete caching, then try Refresh and inspect the displayed error. |
 | **Save image opens a tab instead of downloading** | Mobile browsers can handle cross-origin image downloads differently. | Open the image using Zoom and use the browser's Save Image / download action. |
 | **Cannot switch back from Full Editor** | More than one flight leg remains. | Remove additional legs or disable Transit / multi-leg mode to return to M1. |
 | **Unexpected optional data is present** | The default first leg contains example advanced/variable data. | Open Full Editor and clear all six advanced structured fields **and** Remaining Variable Data for a zero-length optional area. |
@@ -115,4 +115,4 @@ Quick Mode is intentionally limited to **one flight leg (M1)**. The **Full edito
 - [ ] Test scanning on the **actual target scanner/app**; do not treat generation as compliance certification.
 - [ ] Save the `.txt` payload and test evidence if needed, avoiding real passenger data.
 
-**Privacy:** Barcode image URLs include the generated payload and are requested from a third-party OrcaScan endpoint. The website is a static testing tool with no own backend, but that does **not** mean the barcode payload is kept entirely on the device.
+**Privacy:** Barcode generation runs locally with bundled JavaScript and does not call a remote barcode-rendering service. Use only synthetic test data; this is not a live boarding pass system.
