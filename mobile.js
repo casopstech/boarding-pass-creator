@@ -63,7 +63,7 @@
       <div id="mobileQuickError" role="alert"></div>
       <button type="submit" class="mobile-submit" id="mobileGenerateBtn">Generate test barcode</button>
       <button type="button" class="mobile-full-link" id="mobileFullBtn">Full editor · All boarding pass fields</button>
-      <p class="mobile-quick-footnote">Test data only · Barcode preview uses an external service</p>
+      <p class="mobile-quick-footnote">Test data only · Barcode generation works offline after installation</p>
     </form>`;
   builderCard.insertBefore(quick, backBar);
 
