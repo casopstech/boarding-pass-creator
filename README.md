@@ -10,6 +10,19 @@ Once GitHub Pages is enabled, visit: <https://casopstech.github.io/boarding-pass
 
 Read the full [step-by-step user guide and field legend](USER_GUIDE.md), including examples, raw mode, multi-leg generation, output controls, and troubleshooting.
 
+## Mobile quick mode
+
+The site automatically uses a simplified interface on viewports **767 px wide or narrower** (phones). Desktop and wider windows retain the complete editor.
+
+On a phone:
+1. Enter a **test passenger name**, **departure airport**, **destination airport**, **airline code**, **flight number**, and **departure date**.
+2. Tap **Generate test barcode** to view a PDF417 preview.
+3. Expand **More options** to change the cabin class, seat, PNR, or barcode type (PDF417/QR).
+4. Tap **Full editor** for raw BCBP mode, multi-leg itineraries, advanced conditional fields, or other testing parameters.
+5. Under the result, tap **Show technical details** for raw payload, metadata, copy/download buttons, and field breakdown.
+
+Quick mode is designed for a **single flight**; multi-leg settings can be edited only in Full editor and are never silently discarded when switching back. Both modes use the same payload-generation and validation functions.
+
 ## Hosting
 
 This is a static single-page website: no server, packages, or build process are needed.
